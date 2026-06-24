@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html,
+  body {
+    @apply w-full h-full m-0 p-0;
+  }
+
+  body {
+    @apply bg-gray-50 dark:bg-navy-900 text-navy-900 dark:text-white;
+  }
+
+  h1 {
+    @apply text-3xl font-bold;
+  }
+
+  h2 {
+    @apply text-2xl font-bold;
+  }
+
+  h3 {
+    @apply text-xl font-semibold;
+  }
+
+  ul,
+  ol {
+    @apply list-none p-0 m-0;
+  }
+
+  li {
+    @apply m-0 p-0;
+  }
+}
+
+@layer components {
+  .table-responsive {
+    @apply w-full border-collapse;
+  }
+
+  .table-header {
+    @apply bg-navy-100 dark:bg-navy-800 px-4 py-3 text-left text-sm font-semibold text-navy-900 dark:text-white;
+  }
+
+  .table-cell {
+    @apply px-4 py-3 text-sm border-b border-gray-200 dark:border-navy-700;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-navy-500 text-white rounded-lg hover:bg-navy-600 transition-colors;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold text-navy-900 dark:text-white mb-6;
+  }
+
+  .filter-bar {
+    @apply flex gap-4 mb-6 flex-wrap;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+button {
+    cursor: pointer;
+}
