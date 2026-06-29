@@ -5,7 +5,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { generateId } from "@/lib/utils";
-import { dailyRoutineStorage } from "@/lib/db";
+import api from "@/lib/api";
 import { Trash2, Edit2 } from "lucide-react";
 import type { RoutineTask } from "@/types/trading";
 
@@ -23,21 +23,24 @@ export default function DailyRoutine() {
   const todayTasks = tasks.filter((t) => t.date === today);
   const completedCount = todayTasks.filter((t) => t.completed).length;
 
-  // Load from storage on mount
   React.useEffect(() => {
-    const savedTasks = dailyRoutineStorage.get();
-    setTasks(savedTasks);
-    setIsLoaded(true);
+    let mounted = true;
+    api
+      .getTasks()
+      .then((data) => {
+        if (mounted && Array.isArray(data)) setTasks(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setIsLoaded(true);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Save to storage whenever tasks change
-  React.useEffect(() => {
-    if (isLoaded) {
-      dailyRoutineStorage.save(tasks);
-    }
-  }, [tasks, isLoaded]);
-
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!formData.title) {
       alert("Please enter a task");
       return;
@@ -52,19 +55,35 @@ export default function DailyRoutine() {
       date: today,
     };
 
-    setTasks([...tasks, task]);
+    try {
+      const created = await api.createTask(task);
+      setTasks((prev) => [...prev, created ?? task]);
+    } catch {
+      setTasks((prev) => [...prev, task]);
+    }
     setFormData({ title: "", category: "work", time: "" });
     setShowForm(false);
   };
 
-  const toggleTask = (id: string) => {
-    setTasks(
-      tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
-    );
+  const toggleTask = async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const updated = { ...task, completed: !task.completed };
+    try {
+      await api.updateTask(id, updated);
+      setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch {
+      setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    }
   };
 
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((t) => t.id !== id));
+  const deleteTask = async (id: string) => {
+    try {
+      await api.deleteTask(id);
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    } catch {
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    }
   };
 
   return (

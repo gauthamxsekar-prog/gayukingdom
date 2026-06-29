@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-slate-50 text-slate-900 dark:bg-navy-900 dark:text-white">
         <DashboardLayout>{children}</DashboardLayout>
       </body>
     </html>

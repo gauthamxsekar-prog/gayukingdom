@@ -6,7 +6,7 @@ import Input from "@/components/ui/Input";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/utils";
 import { generateId } from "@/lib/utils";
-import { smallStocksStorage } from "@/lib/db";
+import api from "@/lib/api";
 import { Trash2 } from "lucide-react";
 import type { Stock } from "@/types/trading";
 
@@ -15,19 +15,22 @@ export default function SmallStocks() {
   const [showForm, setShowForm] = React.useState(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
 
-  // Load from storage on mount
   React.useEffect(() => {
-    const savedStocks = smallStocksStorage.get();
-    setStocks(savedStocks);
-    setIsLoaded(true);
-  }, []);
+    let mounted = true;
+    api
+      .getSmallStocks()
+      .then((data) => {
+        if (mounted && Array.isArray(data)) setStocks(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setIsLoaded(true);
+      });
 
-  // Save to storage whenever stocks change
-  React.useEffect(() => {
-    if (isLoaded) {
-      smallStocksStorage.save(stocks);
-    }
-  }, [stocks, isLoaded]);
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const [formData, setFormData] = React.useState({
     symbol: "",
     quantity: "",
@@ -35,7 +38,7 @@ export default function SmallStocks() {
     currentPrice: "",
   });
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (
       !formData.symbol ||
       !formData.quantity ||
@@ -55,7 +58,12 @@ export default function SmallStocks() {
       date: new Date().toISOString().split("T")[0],
     };
 
-    setStocks([...stocks, stock]);
+    try {
+      const created = await api.createSmallStock(stock);
+      setStocks((prev) => [...prev, created ?? stock]);
+    } catch {
+      setStocks((prev) => [...prev, stock]);
+    }
     setFormData({ symbol: "", quantity: "", buyPrice: "", currentPrice: "" });
     setShowForm(false);
   };
@@ -213,9 +221,18 @@ export default function SmallStocks() {
                       </td>
                       <td className="table-cell">
                         <button
-                          onClick={() =>
-                            setStocks(stocks.filter((s) => s.id !== stock.id))
-                          }
+                          onClick={async () => {
+                            try {
+                              await api.deleteSmallStock(stock.id);
+                              setStocks((prev) =>
+                                prev.filter((s) => s.id !== stock.id),
+                              );
+                            } catch {
+                              setStocks((prev) =>
+                                prev.filter((s) => s.id !== stock.id),
+                              );
+                            }
+                          }}
                           className="text-red-600"
                         >
                           <Trash2 className="w-4 h-4" />

@@ -7,7 +7,7 @@ import Select from "@/components/ui/Select";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/utils";
 import { generateId } from "@/lib/utils";
-import { sipTrackerStorage } from "@/lib/db";
+import api from "@/lib/api";
 import { Trash2 } from "lucide-react";
 import type { SIPEntry } from "@/types/trading";
 
@@ -27,19 +27,25 @@ export default function SIPTracker() {
     startDate: new Date().toISOString().split("T")[0],
   });
 
-  // Load from storage on mount
+  // Load from server on mount
   React.useEffect(() => {
-    const savedEntries = sipTrackerStorage.get();
-    setEntries(savedEntries);
-    setIsLoaded(true);
-  }, []);
+    let mounted = true;
+    api
+      .getSIPs()
+      .then((data) => {
+        if (mounted && Array.isArray(data)) {
+          setEntries(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setIsLoaded(true);
+      });
 
-  // Save to storage whenever entries change
-  React.useEffect(() => {
-    if (isLoaded) {
-      sipTrackerStorage.save(entries);
-    }
-  }, [entries, isLoaded]);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleAdd = () => {
     if (!formData.name || !formData.amount) {
@@ -58,7 +64,17 @@ export default function SIPTracker() {
       status: "active",
     };
 
-    setEntries([...entries, entry]);
+    // call API to create
+    create();
+
+    async function create() {
+      try {
+        const created = await api.createSIP(entry);
+        setEntries((prev) => [...prev, created ?? entry]);
+      } catch {
+        setEntries((prev) => [...prev, entry]);
+      }
+    }
     setFormData({
       name: "",
       amount: "",
@@ -197,9 +213,18 @@ export default function SIPTracker() {
                     </p>
                   </div>
                   <button
-                    onClick={() =>
-                      setEntries(entries.filter((e) => e.id !== entry.id))
-                    }
+                    onClick={async () => {
+                      try {
+                        await api.deleteSIP(entry.id);
+                        setEntries((prev) =>
+                          prev.filter((e) => e.id !== entry.id),
+                        );
+                      } catch {
+                        setEntries((prev) =>
+                          prev.filter((e) => e.id !== entry.id),
+                        );
+                      }
+                    }}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <Trash2 className="w-5 h-5" />

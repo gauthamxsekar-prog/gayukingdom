@@ -6,7 +6,7 @@ import Input from "@/components/ui/Input";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/utils";
 import { generateId } from "@/lib/utils";
-import { capitalTrackerStorage } from "@/lib/db";
+import api from "@/lib/api";
 import { Trash2 } from "lucide-react";
 import type { CapitalEntry } from "@/types/trading";
 
@@ -15,19 +15,22 @@ export default function CapitalTracker() {
   const [showForm, setShowForm] = React.useState(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
 
-  // Load from storage on mount
   React.useEffect(() => {
-    const savedEntries = capitalTrackerStorage.get();
-    setEntries(savedEntries);
-    setIsLoaded(true);
-  }, []);
+    let mounted = true;
+    api
+      .getCapitalEntries()
+      .then((data) => {
+        if (mounted && Array.isArray(data)) setEntries(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setIsLoaded(true);
+      });
 
-  // Save to storage whenever entries change
-  React.useEffect(() => {
-    if (isLoaded) {
-      capitalTrackerStorage.save(entries);
-    }
-  }, [entries, isLoaded]);
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const [formData, setFormData] = React.useState({
     name: "",
     initialAmount: "",
@@ -35,7 +38,7 @@ export default function CapitalTracker() {
     category: "investment",
   });
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!formData.name || !formData.initialAmount || !formData.currentAmount) {
       alert("Please fill all fields");
       return;
@@ -50,7 +53,12 @@ export default function CapitalTracker() {
       category: formData.category,
     };
 
-    setEntries([...entries, entry]);
+    try {
+      const created = await api.createCapitalEntry(entry);
+      setEntries((prev) => [...prev, created ?? entry]);
+    } catch {
+      setEntries((prev) => [...prev, entry]);
+    }
     setFormData({
       name: "",
       initialAmount: "",
@@ -183,9 +191,14 @@ export default function CapitalTracker() {
                     </p>
                   </div>
                   <button
-                    onClick={() =>
-                      setEntries(entries.filter((e) => e.id !== entry.id))
-                    }
+                    onClick={async () => {
+                      try {
+                        await api.deleteCapitalEntry(entry.id);
+                        setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+                      } catch {
+                        setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+                      }
+                    }}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                   >
                     <Trash2 className="w-5 h-5" />

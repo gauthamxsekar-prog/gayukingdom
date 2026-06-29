@@ -6,6 +6,7 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { generateId } from "@/lib/utils";
+import api from "@/lib/api";
 import { X } from "lucide-react";
 import type { Stock } from "@/types/trading";
 
@@ -29,7 +30,7 @@ export default function AddStockModal({
     notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
@@ -52,7 +53,16 @@ export default function AddStockModal({
       notes: formData.notes,
     };
 
-    onAdd(stock);
+    try {
+      const created = await api.createStock({
+        name: stock.symbol,
+        symbol: stock.symbol,
+      });
+      onAdd(created ?? stock);
+    } catch (err) {
+      // fallback to local add if API fails
+      onAdd(stock);
+    }
     setFormData({
       symbol: "",
       quantity: "",
