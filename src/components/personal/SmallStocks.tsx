@@ -60,9 +60,22 @@ export default function SmallStocks() {
 
     try {
       const created = await api.createSmallStock(stock);
-      setStocks((prev) => [...prev, created ?? stock]);
+      setStocks((prev) => {
+        const toAdd = created ?? stock;
+        const normalized = toAdd.symbol.trim().toUpperCase();
+        const withoutSame = prev.filter(
+          (s) => s.symbol.trim().toUpperCase() !== normalized,
+        );
+        return [...withoutSame, toAdd];
+      });
     } catch {
-      setStocks((prev) => [...prev, stock]);
+      setStocks((prev) => {
+        const normalized = stock.symbol.trim().toUpperCase();
+        const withoutSame = prev.filter(
+          (s) => s.symbol.trim().toUpperCase() !== normalized,
+        );
+        return [...withoutSame, stock];
+      });
     }
     setFormData({ symbol: "", quantity: "", buyPrice: "", currentPrice: "" });
     setShowForm(false);

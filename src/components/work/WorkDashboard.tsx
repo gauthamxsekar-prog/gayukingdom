@@ -217,7 +217,13 @@ export default function WorkDashboard() {
         const created = await api.createStock({ name, symbol: name });
         await loadStocks(created?.id);
       } catch (err) {
-        setStocks((prev) => [...prev, newStock]);
+        setStocks((prev) => {
+          const normalized = newStock.name.trim().toUpperCase();
+          const withoutSame = prev.filter(
+            (s) => s.name.trim().toUpperCase() !== normalized,
+          );
+          return [...withoutSame, newStock];
+        });
         setSelectedStockId(newStock.id);
       } finally {
         setNewStockName("");
