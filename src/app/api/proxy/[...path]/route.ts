@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.API_URL || "http://localhost:8000/api";
+const API_URL = process.env.API_URL || "https://gayukingdomapi.vercel.app/api";
 
 export async function GET(request: Request, context: any) {
   return proxy(request, context.params);
