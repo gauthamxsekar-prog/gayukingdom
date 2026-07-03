@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_URL = process.env.API_URL || "https://gayukingdomapi.vercel.app/api";
+const LOCAL_API_URL = process.env.LOCAL_API_URL || "http://localhost:8000/api";
 
 export async function GET(request: Request, context: any) {
   return proxy(request, context.params);
@@ -27,7 +28,31 @@ async function proxy(request: Request, params: Promise<{ path: string[] }>) {
   const pathString = path.join("/");
   const incomingUrl = new URL(request.url);
   const queryString = incomingUrl.search;
-  const url = `${API_URL}/${pathString}${queryString}`;
+
+  const hostname = incomingUrl.hostname;
+  const isLocalHost =
+    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+
+  let baseApi = isLocalHost ? LOCAL_API_URL : API_URL;
+
+  try {
+    const baseApiUrl = new URL(baseApi);
+    // prevent proxying back to the same Next.js server (recursion)
+    if (
+      baseApiUrl.hostname === incomingUrl.hostname &&
+      (baseApiUrl.port || (baseApiUrl.protocol === "https:" ? "443" : "80")) ===
+        (incomingUrl.port || (incomingUrl.protocol === "https:" ? "443" : "80"))
+    ) {
+      console.warn(
+        "[proxy] LOCAL_API_URL appears to point to the same host:port as the incoming request — falling back to remote API to avoid recursion. Set LOCAL_API_URL to your backend server.",
+      );
+      baseApi = API_URL;
+    }
+  } catch (e) {
+    console.warn("[proxy] invalid base API URL", baseApi, e);
+  }
+
+  const url = `${baseApi.replace(/\/$/, "")}/${pathString}${queryString}`;
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("host");
