@@ -98,6 +98,8 @@ export default function WorkDashboard() {
   const [stockDropdownOpen, setStockDropdownOpen] = useState(false);
 
   const loadStocks = async (selectedId?: string) => {
+    const localStocks = stocks.filter((stock) => isLocalStockId(stock.id));
+
     try {
       const serverStocks = await api.getStocks();
       if (
@@ -110,28 +112,35 @@ export default function WorkDashboard() {
         );
 
         if (validStocks.length > 0) {
-          setStocks(validStocks);
-          setColumns(defaultColumns);
+          const mergedStocks = [
+            ...validStocks,
+            ...localStocks.filter(
+              (local) => !validStocks.some((stock) => stock.id === local.id),
+            ),
+          ];
 
-          const firstValidId = validStocks[0]?.id ?? "";
-          if (
-            selectedId &&
-            validStocks.some((stock) => stock.id === selectedId)
-          ) {
-            setSelectedStockId(selectedId);
-          } else {
-            setSelectedStockId(firstValidId);
-          }
-          return;
+          setStocks(mergedStocks);
+          const firstValidId = mergedStocks[0]?.id ?? "";
+          setSelectedStockId(
+            selectedId && mergedStocks.some((stock) => stock.id === selectedId)
+              ? selectedId
+              : firstValidId,
+          );
+          return mergedStocks;
         }
       }
     } catch {
       // fallback to default stock list below
     }
 
-    setStocks(defaultStocks);
-    setColumns(defaultColumns);
-    setSelectedStockId(defaultStocks[0]?.id ?? "");
+    const fallbackStocks = [...defaultStocks, ...localStocks];
+    setStocks(fallbackStocks);
+    setSelectedStockId(
+      selectedId && fallbackStocks.some((stock) => stock.id === selectedId)
+        ? selectedId
+        : (fallbackStocks[0]?.id ?? ""),
+    );
+    return fallbackStocks;
   };
 
   const loadColumns = async () => {
@@ -248,10 +257,10 @@ export default function WorkDashboard() {
       }
 
       if (deleted) {
-        await loadStocks();
+        const loadedStocks = await loadStocks();
         setAllRows((prev) => prev.filter((r) => r.stock_id !== id));
         if (selectedStockId === id) {
-          setSelectedStockId("");
+          setSelectedStockId(loadedStocks[0]?.id ?? "");
         }
         return;
       }

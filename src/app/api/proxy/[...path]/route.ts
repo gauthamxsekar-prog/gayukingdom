@@ -25,7 +25,9 @@ export async function PATCH(request: Request, context: any) {
 async function proxy(request: Request, params: Promise<{ path: string[] }>) {
   const { path } = await params;
   const pathString = path.join("/");
-  const url = `${API_URL}/${pathString}`;
+  const incomingUrl = new URL(request.url);
+  const queryString = incomingUrl.search;
+  const url = `${API_URL}/${pathString}${queryString}`;
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("host");
@@ -39,6 +41,7 @@ async function proxy(request: Request, params: Promise<{ path: string[] }>) {
     method: request.method,
     url,
     pathString,
+    queryString,
     headers: Object.fromEntries(requestHeaders.entries()),
     body: requestBody,
   });
